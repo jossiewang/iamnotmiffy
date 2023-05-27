@@ -20,8 +20,12 @@
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 
+/* USER CODE BEGIN Includes */
+#include <mainpp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,7 +35,53 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+//motor datasheet
+#define resolution_MF 512
+#define reductionratio_MF 16
+#define resolution_ML 500
+#define reductionratio_ML 13.2
+#define resolution_MR 500
+#define reductionratio_MR 13.2
 
+//motor control
+#define TIM_ENC_MF &htim1
+#define TIM_ENC_ML &htim4
+#define TIM_ENC_MR &htim23
+#define TIM_PWM_MF &htim2
+#define TIM_PWM_ML &htim2
+#define TIM_PWM_MR &htim8
+#define CH_PWM_MF TIM_CHANNEL_1
+#define CH_PWM_ML TIM_CHANNEL_4
+#define CH_PWM_MR TIM_CHANNEL_3
+#define motor_span 0.001
+
+//pin names
+#define INA_MR_PORT GPIOE
+#define INA_MR_PIN GPIO_PIN_8
+#define INB_MR_PORT GPIOE
+#define INB_MR_PIN GPIO_PIN_7
+#define INA_ML_PORT GPIOE
+#define INA_ML_PIN GPIO_PIN_10
+#define INB_ML_PORT GPIOE
+#define INB_ML_PIN GPIO_PIN_12
+#define INA_MF_PORT GPIOE
+#define INA_MF_PIN GPIO_PIN_6
+#define INB_MF_PORT GPIOE
+#define INB_MF_PIN GPIO_PIN_15
+
+//motor PWM output
+#define motorARR 49 //ARR of TIM2
+
+//dynamics
+#define pi 3.14159265359
+#define degree60 pi/3
+#define degree30 pi/6
+
+#define ratio_motor2wheel 0.5 //motor 1 revolution wheel 32/20 revolution -> 20/40
+#define LF 100
+#define LR 100
+#define LL 100
+#define wheel_radius 30
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -48,19 +98,46 @@ TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim23;
 
-/* USER CODE BEGIN PV */
+UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart3_rx;
+DMA_HandleTypeDef hdma_usart3_tx;
 
+/* USER CODE BEGIN PV */
+//alpha!!
+double A=0, rA=0, Am, Wm;
+
+//command speed (robot coordinate System)
+double Vx, Vy, W;
+//command speed (motor)
+double MF = 0, MR = 0, ML = 0;
+
+//real speed (robot coordinate System)
+double rVx, rVy, rW;
+//real speed (motor)
+int16_t enc_MF, enc_MR, enc_ML;
+double rMF, rMR, rML;
+
+//PID_PWM
+double err_MF, inte_MF = 0, PID_MF = 0;
+double err_MR, inte_MR = 0, PID_MR = 0;
+double err_ML, inte_ML = 0, PID_ML = 0;
+
+const float kp_MF = 0.63478, ki_MF = 42.3571, kd_MF = 0;
+const float kp_MR = 0.62054, ki_MR = 48.2085, kd_MR = 0;
+const float kp_ML = 0.68042, ki_ML = 54.7149, kd_ML = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_TIM1_Init(void);
+static void MX_DMA_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM23_Init(void);
+static void MX_USART3_UART_Init(void);
+static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -98,15 +175,27 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_TIM1_Init();
+  MX_DMA_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_TIM8_Init();
   MX_TIM23_Init();
+  MX_USART3_UART_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
+    HAL_TIM_Base_Start_IT(&htim3);
+    HAL_TIM_Encoder_Start(TIM_ENC_MF, TIM_CHANNEL_1);
+    HAL_TIM_Encoder_Start(TIM_ENC_MF, TIM_CHANNEL_2);
+    HAL_TIM_Encoder_Start(TIM_ENC_ML, TIM_CHANNEL_1);
+    HAL_TIM_Encoder_Start(TIM_ENC_ML, TIM_CHANNEL_2);
+    HAL_TIM_Encoder_Start(TIM_ENC_MR, TIM_CHANNEL_1);
+    HAL_TIM_Encoder_Start(TIM_ENC_MR, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(TIM_PWM_MF, CH_PWM_MF);
+    HAL_TIM_PWM_Start(TIM_PWM_ML, CH_PWM_ML);
+    HAL_TIM_PWM_Start(TIM_PWM_MR, CH_PWM_MR);
+  	setup();
+    /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -115,6 +204,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  loop();
   }
   /* USER CODE END 3 */
 }
@@ -144,7 +234,16 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_DIV1;
   RCC_OscInitStruct.HSICalibrationValue = 64;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 21;
+  RCC_OscInitStruct.PLL.PLLP = 1;
+  RCC_OscInitStruct.PLL.PLLQ = 2;
+  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
+  RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
+  RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -155,15 +254,15 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
                               |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV2;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB3CLKDivider = RCC_APB3_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV2;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -487,6 +586,73 @@ static void MX_TIM23_Init(void)
 }
 
 /**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART3_Init 0 */
+
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart3.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart3, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart3, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_DisableFifoMode(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+
+  /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+  /* DMA1_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -500,6 +666,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -522,7 +689,138 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void inverse_kinematics_model();
+void Encoder();
+void PID_PWM();
+void kinematics_model();
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	if(htim->Instance == TIM3){
+    loop();
+		inverse_kinematics_model();
+		Encoder();
+		PID_PWM();
+		kinematics_model();
+	}
+}
+void inverse_kinematics_model(){
+	double WF, WR, WL;
+	/*alpha
+	Vx = cos(A)*Vx - sin(A)*Vy;
+	Vy = sin(A)*Vx + cos(A)*Vy;
+	Am = A - rA;
+	Wm = Am*motor_span;
+	W += Wm;
+	A += W*motor_span;
+	*/
+	WF = Vx - LF*W;
+	WR = -cos(degree60)*Vx - sin(degree60)*Vy - LR*W;
+	WL = -sin(degree30)*Vx + cos(degree30)*Vy - LL*W;
+
+	MF = WF/ratio_motor2wheel;
+	MR = WR/ratio_motor2wheel;
+	ML = WL/ratio_motor2wheel;
+	}
+void Encoder() {
+	//front wheel motor
+	enc_MF = __HAL_TIM_GetCounter(TIM_ENC_MF);
+	rMF = (double) enc_MF / (4 * resolution_MF * reductionratio_MF) / motor_span/(2*pi);
+	__HAL_TIM_SetCounter(TIM_ENC_MF, 0);
+
+	//right wheel motor
+	enc_MR = __HAL_TIM_GetCounter(TIM_ENC_MR);
+	rMR = (double) enc_MR / (4 * resolution_MR * reductionratio_MR) / motor_span/(2*pi);
+	__HAL_TIM_SetCounter(TIM_ENC_MR, 0);
+
+	//left wheel motor
+	enc_ML = __HAL_TIM_GetCounter(TIM_ENC_ML);
+	rML = (double) enc_ML / (4 * resolution_ML * reductionratio_ML) / motor_span/(2*pi);
+	__HAL_TIM_SetCounter(TIM_ENC_ML, 0);
+}
+void PID_PWM(){
+
+	//PID_MF
+	double err_MF = MF - rMF;
+	inte_MF += err_MF * motor_span;
+	double bound_MF = 1/ki_MF;
+	if (ki_MF * inte_MF > 1) inte_MF = bound_MF;
+	else if (ki_MF * inte_MF < -1) inte_MF = -bound_MF;
+	float u_MF = kp_MF * err_MF + ki_MF * inte_MF;
+	if (u_MF > 1) u_MF = 1;
+	else if (u_MF < -1) u_MF = -1;
+
+	//PWM_MF
+	int pulse_MF;
+	if (u_MF > 0) {
+		pulse_MF = (int) (u_MF * (motorARR + 1));
+		HAL_GPIO_WritePin(INA_MF_PORT, INA_MF_PIN, GPIO_PIN_SET); // INA
+		HAL_GPIO_WritePin(INB_MF_PORT, INB_MF_PIN, GPIO_PIN_RESET); // INB
+	} else {
+		pulse_MF = (int) (-u_MF * (motorARR + 1));
+		HAL_GPIO_WritePin(INA_MF_PORT, INA_MF_PIN, GPIO_PIN_RESET); // INA
+		HAL_GPIO_WritePin(INB_MF_PORT, INB_MF_PIN, GPIO_PIN_SET); // INB
+	}
+	__HAL_TIM_SET_COMPARE(TIM_PWM_MF, CH_PWM_MF, pulse_MF); // PWM
+
+	//PID_MR
+	double err_MR = MR - rMR;
+	inte_MR += err_MR * motor_span;
+	double bound_MR = 1/ki_MR;
+	if (ki_MR * inte_MR > 1) inte_MR = bound_MR;
+	else if (ki_MR * inte_MR < -1) inte_MR = -bound_MR;
+	float u_MR = kp_MR * err_MR + ki_MR * inte_MR;
+	if (u_MR > 1) u_MR = 1;
+	else if (u_MR < -1) u_MR = -1;
+	//PWM_MR
+	int pulse_MR;
+	if (u_MR > 0) {
+		pulse_MR = (int) (u_MR * (motorARR + 1));
+		HAL_GPIO_WritePin(INA_MR_PORT, INA_MR_PIN, GPIO_PIN_SET); // INA
+		HAL_GPIO_WritePin(INB_MR_PORT, INB_MR_PIN, GPIO_PIN_RESET); // INB
+	} else {
+		pulse_MR = (int) (-u_MR * (motorARR + 1));
+		HAL_GPIO_WritePin(INA_MR_PORT, INA_MR_PIN, GPIO_PIN_RESET); // INA
+		HAL_GPIO_WritePin(INB_MR_PORT, INB_MR_PIN, GPIO_PIN_SET); // INB
+	}
+	__HAL_TIM_SET_COMPARE(TIM_PWM_MR, CH_PWM_MR, pulse_MR); // PWM
+
+	//PID_ML
+	double err_ML = ML - rML;
+	inte_ML += err_ML * motor_span;
+	double bound_ML = 1/ki_ML;
+	if (ki_ML * inte_ML > 1) inte_ML = bound_ML;
+	else if (ki_ML * inte_ML < -1) inte_ML = -bound_ML;
+	float u_ML = kp_ML * err_ML + ki_ML * inte_ML;
+	if (u_ML > 1) u_ML = 1;
+	else if (u_ML < -1) u_ML = -1;
+	//PWM_ML
+	int pulse_ML;
+	if (u_ML > 0) {
+		pulse_ML = (int) (u_ML * (motorARR + 1));
+		HAL_GPIO_WritePin(INA_ML_PORT, INA_ML_PIN, GPIO_PIN_SET); // INA
+		HAL_GPIO_WritePin(INB_ML_PORT, INB_ML_PIN, GPIO_PIN_RESET); // INB
+	} else {
+		pulse_ML = (int) (-u_ML * (motorARR + 1));
+		HAL_GPIO_WritePin(INA_ML_PORT, INA_ML_PIN, GPIO_PIN_RESET); // INA
+		HAL_GPIO_WritePin(INB_ML_PORT, INB_ML_PIN, GPIO_PIN_SET); // INB
+	}
+	__HAL_TIM_SET_COMPARE(TIM_PWM_ML, CH_PWM_ML, pulse_ML); // PWM
+
+}
+void kinematics_model(){
+	double rWF = rMF*ratio_motor2wheel,
+				 rWR = rMR*ratio_motor2wheel,
+				 rWL = rML*ratio_motor2wheel;
+
+	rVx = 1/(LF+LR+LL)*((LR+LL)*rWF - LF*rWR - LF*rWL);
+	rVy = 1/sqrt(3)/(LF+LR+LL)*((LR-LL)*rWF - (LF+2*LL)*rWR + (LF+2*LR)*rWL);
+	rW = -1/(LF+LR+LL)*(rWF + rWR + rWL);
+	/*alpha
+	rVx = cos(A)*rVx - sin(A)*rVy;
+	rVy = sin(A)*rVx + cos(A)*rVy;
+	rA+=rW*motor_span;
+	*/
+}
 /* USER CODE END 4 */
 
 /**
