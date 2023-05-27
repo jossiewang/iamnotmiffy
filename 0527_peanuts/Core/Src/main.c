@@ -107,7 +107,7 @@ DMA_HandleTypeDef hdma_usart3_tx;
 double A=0, rA=0, Am, Wm;
 
 //command speed (robot coordinate System)
-double Vx, Vy, W;
+double Vx=0, Vy=0, W=0;
 //command speed (motor)
 double MF = 0, MR = 0, ML = 0;
 
@@ -696,11 +696,14 @@ void kinematics_model();
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim->Instance == TIM3){
-    loop();
-		inverse_kinematics_model();
-		Encoder();
-		PID_PWM();
-		kinematics_model();
+		loop();
+		rVx++;
+		rVy++;
+		rW++;
+		//inverse_kinematics_model();
+		//Encoder();
+		//PID_PWM();
+		//kinematics_model();
 	}
 }
 void inverse_kinematics_model(){
