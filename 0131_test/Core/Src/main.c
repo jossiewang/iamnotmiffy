@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "string.h"
-#hehehehehehehehehe
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
