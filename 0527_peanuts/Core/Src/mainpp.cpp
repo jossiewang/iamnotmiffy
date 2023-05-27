@@ -48,6 +48,7 @@ nh.getHardware()->flush();
  }
  void loop(void)
  {
+ //pub.publish(&speed);
  nh.spinOnce();
  }
 
@@ -104,4 +105,16 @@ nh.getHardware()->flush();
 
    /* USER CODE END USART3_Init 2 */
 
+ }
+ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+ {
+     if (huart == &huart3)
+     {
+         rVx = 0.0;
+         rVy = 0.0;
+         rW = 0.0;
+         HAL_UART_DeInit(&huart3);
+         MX_USART3_UART_Init();
+         nh.getHardware()->init();
+     }
  }

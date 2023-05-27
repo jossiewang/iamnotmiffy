@@ -20,9 +20,8 @@
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
-
 /* USER CODE BEGIN Includes */
-#include <mainpp.h>
+#include "mainpp.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -195,7 +194,7 @@ int main(void)
     HAL_TIM_PWM_Start(TIM_PWM_ML, CH_PWM_ML);
     HAL_TIM_PWM_Start(TIM_PWM_MR, CH_PWM_MR);
   	setup();
-    /* USER CODE END 2 */
+  /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -391,9 +390,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 63;
+  htim3.Init.Prescaler = 839;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 999;
+  htim3.Init.Period = 9999;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -601,7 +600,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
+  huart3.Init.BaudRate = 57600;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -700,12 +699,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		rVx++;
 		rVy++;
 		rW++;
+		realspeed();
+		/*
+		speed.linear.x=rVx;
+		speed.linear.y=rVy;
+		speed.angular.z=rW;
+		pub.publish(speed);
+		*/
 		//inverse_kinematics_model();
 		//Encoder();
 		//PID_PWM();
 		//kinematics_model();
 	}
 }
+
 void inverse_kinematics_model(){
 	double WF, WR, WL;
 	/*alpha
