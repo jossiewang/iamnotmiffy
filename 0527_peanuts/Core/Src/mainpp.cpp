@@ -21,7 +21,7 @@ float Vx, Vy, W;
 float rVx, rVy, rW;
 
 geometry_msgs::Twist speed;
-ros::Publisher pub("speed_toSTM",&speed);
+ros::Publisher pub("speed_fromSTM",&speed);
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
