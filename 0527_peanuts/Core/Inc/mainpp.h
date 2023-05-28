@@ -9,18 +9,16 @@
 #define MAINPP_H_
 
 #ifdef __cplusplus
- extern "C" {
+extern "C"
+{
 #endif
 
-//extern float x,y,theta;
-extern double Vx,Vy,W, rVx, rVy, rW;
 void setup(void);
 void loop(void);
-void realspeed(void);
+extern double vel[3];
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* MAINPP_H_ */

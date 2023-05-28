@@ -36,17 +36,17 @@
 #define ROS_STM32_HARDWARE_H_
 
 #define STM32H7xx  // Change for your device
-#ifdef STM32H7xx
-#include "stm32h7xx_hal.h"
-#include "stm32h7xx_hal_uart.h"
+#ifdef STM32F3xx
+#include "stm32f3xx_hal.h"
+#include "stm32f3xx_hal_uart.h"
 #endif /* STM32F3xx */
 #ifdef STM32F4xx
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_uart.h"
 #endif /* STM32F4xx */
-#ifdef STM32F7xx
-#include "stm32f7xx_hal.h"
-#include "stm32f7xx_hal_uart.h"
+#ifdef STM32H7xx
+#include "stm32h7xx_hal.h"
+#include "stm32h7xx_hal_uart.h"
 #endif /* STM32F7xx */
 
 extern UART_HandleTypeDef huart3;
