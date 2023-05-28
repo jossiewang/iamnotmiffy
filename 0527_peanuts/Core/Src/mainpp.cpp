@@ -14,12 +14,10 @@ void vel_callback(const geometry_msgs::Twist &msg)
 	Vy = msg.linear.y;
 	W=msg.angular.z;
 }
-
 ros::NodeHandle nh;
 ros::Subscriber<geometry_msgs::Twist> sub("cmdvel_toSTM", vel_callback);
 float Vx, Vy, W;
 float rVx, rVy, rW;
-
 geometry_msgs::Twist speed;
 ros::Publisher pub("speed_fromSTM",&speed);
 
@@ -35,6 +33,7 @@ void setup(void)
 {
     nh.initNode();
     nh.subscribe(sub);
+    nh.advertise(pub);
 }
 void loop(void)
 {
