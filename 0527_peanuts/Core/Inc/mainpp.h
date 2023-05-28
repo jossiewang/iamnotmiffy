@@ -16,7 +16,9 @@ extern "C"
 void setup(void);
 void loop(void);
 void errcallback(void);
-extern double Vx, Vy, W;
+void realspeed(void);
+extern float Vx, Vy, W;
+extern float rVx, rVy, rW;
 
 #ifdef __cplusplus
 }

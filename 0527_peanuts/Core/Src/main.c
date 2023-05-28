@@ -111,7 +111,7 @@ double A=0, rA=0, Am, Wm;
 double MF = 0, MR = 0, ML = 0;
 
 //real speed (robot coordinate System)
-double rVx, rVy, rW;
+//double rVx, rVy, rW;
 //real speed (motor)
 int16_t enc_MF, enc_MR, enc_ML;
 double rMF, rMR, rML;
@@ -707,11 +707,10 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim->Instance == TIM3){
-		loop();
 		rVx++;
 		rVy++;
 		rW++;
-		//realspeed();
+		realspeed();
 		/*
 		speed.linear.x=rVx;
 		speed.linear.y=rVy;

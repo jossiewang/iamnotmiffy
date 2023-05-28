@@ -11,8 +11,8 @@ main.c:637:13:MX_DMA_Init	1
 main.c:658:13:MX_GPIO_Init	1
 main.c:695:6:HAL_UART_ErrorCallback	2
 main.c:708:6:HAL_TIM_PeriodElapsedCallback	2
-main.c:728:6:inverse_kinematics_model	1
-main.c:746:6:Encoder	1
-main.c:762:6:PID_PWM	16
-main.c:832:6:kinematics_model	1
-main.c:852:6:Error_Handler	1
+main.c:727:6:inverse_kinematics_model	1
+main.c:745:6:Encoder	1
+main.c:761:6:PID_PWM	16
+main.c:831:6:kinematics_model	1
+main.c:851:6:Error_Handler	1

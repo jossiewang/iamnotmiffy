@@ -17,7 +17,11 @@ void vel_callback(const geometry_msgs::Twist &msg)
 
 ros::NodeHandle nh;
 ros::Subscriber<geometry_msgs::Twist> sub("cmdvel_toSTM", vel_callback);
-double Vx, Vy, W;
+float Vx, Vy, W;
+float rVx, rVy, rW;
+
+geometry_msgs::Twist speed;
+ros::Publisher pub("speed_toSTM",&speed);
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -38,4 +42,11 @@ void loop(void)
 }
 void errcallback(void) {
 	nh.getHardware()->init();
+}
+void realspeed(void)
+{
+	speed.linear.x=rVx;
+	speed.linear.y=rVy;
+	speed.angular.z=rW;
+	pub.publish(&speed);
 }
