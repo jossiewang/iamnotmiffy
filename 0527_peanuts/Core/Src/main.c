@@ -696,10 +696,10 @@ void kinematics_model();
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim->Instance == TIM3){
-		loop();
 		rVx++;
 		rVy++;
 		rW++;
+		realspeed();
 		//inverse_kinematics_model();
 		//Encoder();
 		//PID_PWM();
