@@ -15,7 +15,8 @@ extern "C"
 
 void setup(void);
 void loop(void);
-extern double vel[3];
+void errcallback(void);
+extern double Vx, Vy, W;
 
 #ifdef __cplusplus
 }

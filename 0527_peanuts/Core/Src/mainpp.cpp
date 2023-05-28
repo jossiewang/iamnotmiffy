@@ -16,7 +16,7 @@ void vel_callback(const geometry_msgs::Twist &msg)
 }
 
 ros::NodeHandle nh;
-ros::Subscriber<geometry_msgs::Twist> sub("give_car_speed", vel_callback);
+ros::Subscriber<geometry_msgs::Twist> sub("cmdvel_toSTM", vel_callback);
 double Vx, Vy, W;
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
@@ -35,4 +35,7 @@ void setup(void)
 void loop(void)
 {
     nh.spinOnce();
+}
+void errcallback(void) {
+	nh.getHardware()->init();
 }
