@@ -129,13 +129,13 @@ const float kp_ML = 0.68042, ki_ML = 54.7149, kd_ML = 0;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM23_Init(void);
-static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_USART3_UART_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -174,13 +174,13 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_TIM8_Init();
   MX_TIM23_Init();
-  MX_USART3_UART_Init();
   MX_TIM1_Init();
+  MX_USART3_UART_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
     HAL_TIM_Base_Start_IT(&htim3);
     HAL_TIM_Encoder_Start(TIM_ENC_MF, TIM_CHANNEL_1);

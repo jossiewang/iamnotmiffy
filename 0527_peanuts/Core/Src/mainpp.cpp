@@ -7,7 +7,8 @@
 #include "mainpp.h"
 #include "ros.h"
 #include "geometry_msgs/Twist.h"
-
+float Vx, Vy, W;
+float rVx, rVy, rW;
 void vel_callback(const geometry_msgs::Twist &msg)
 {
 	Vx = msg.linear.x;
@@ -16,8 +17,6 @@ void vel_callback(const geometry_msgs::Twist &msg)
 }
 ros::NodeHandle nh;
 ros::Subscriber<geometry_msgs::Twist> sub("cmdvel_toSTM", vel_callback);
-float Vx, Vy, W;
-float rVx, rVy, rW;
 geometry_msgs::Twist speed;
 ros::Publisher pub("speed_fromSTM",&speed);
 
@@ -25,10 +24,10 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
     nh.getHardware()->flush();
 }
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+/*void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     nh.getHardware()->reset_rbuf();
-}
+}*/
 void setup(void)
 {
     nh.initNode();
