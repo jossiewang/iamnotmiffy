@@ -9,7 +9,7 @@
 #include "ros.h"
 #include "stm32h7xx_hal.h"
 #include "geometry_msgs/Twist.h"
-float Vx, Vy, W;
+double Vx, Vy, W;
 float rVx, rVy, rW;
 void vel_callback(const geometry_msgs::Twist &msg)
 {
