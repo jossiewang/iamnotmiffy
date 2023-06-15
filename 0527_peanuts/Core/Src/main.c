@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <mainpp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -93,6 +94,7 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim5;
 TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim23;
 
@@ -120,9 +122,17 @@ double err_MF, inte_MF = 0, PID_MF = 0;
 double err_MR, inte_MR = 0, PID_MR = 0;
 double err_ML, inte_ML = 0, PID_ML = 0;
 
-const float kp_MF = 0.63478, ki_MF = 42.3571, kd_MF = 0;
-const float kp_MR = 0.62054, ki_MR = 48.2085, kd_MR = 0;
-const float kp_ML = 0.68042, ki_ML = 54.7149, kd_ML = 0;
+//const float kp_MF = 0.63478, ki_MF = 42.3571, kd_MF = 0;
+//const float kp_MR = 0.62054, ki_MR = 48.2085, kd_MR = 0;
+//const float kp_ML = 0.68042, ki_ML = 54.7149, kd_ML = 0;
+
+float kp_MF = 0.63478, ki_MF = 42.3571, kd_MF = 0;
+float kp_MR = 0.62054, ki_MR = 48.2085, kd_MR = 0;
+float kp_ML = 0.68042, ki_ML = 54.7149, kd_ML = 0;
+
+double cmnMF = 0.83;
+double cmnspeed = 1.585;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -136,6 +146,7 @@ static void MX_TIM23_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_TIM5_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -181,10 +192,12 @@ int main(void)
   MX_TIM1_Init();
   MX_USART3_UART_Init();
   MX_TIM2_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
-    HAL_TIM_Base_Start_IT(&htim3);
-    HAL_TIM_Encoder_Start(TIM_ENC_MF, TIM_CHANNEL_1);
-    HAL_TIM_Encoder_Start(TIM_ENC_MF, TIM_CHANNEL_2);
+  HAL_TIM_Base_Start_IT(&htim3);
+  HAL_TIM_Base_Start_IT(&htim5);
+  HAL_TIM_Encoder_Start(TIM_ENC_MF, TIM_CHANNEL_1);
+  HAL_TIM_Encoder_Start(TIM_ENC_MF, TIM_CHANNEL_2);
     HAL_TIM_Encoder_Start(TIM_ENC_ML, TIM_CHANNEL_1);
     HAL_TIM_Encoder_Start(TIM_ENC_ML, TIM_CHANNEL_2);
     HAL_TIM_Encoder_Start(TIM_ENC_MR, TIM_CHANNEL_1);
@@ -335,7 +348,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 63;
+  htim2.Init.Prescaler = 83;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 49;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -390,7 +403,7 @@ static void MX_TIM3_Init(void)
   htim3.Instance = TIM3;
   htim3.Init.Prescaler = 839;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 9999;
+  htim3.Init.Period = 99;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -464,6 +477,51 @@ static void MX_TIM4_Init(void)
 }
 
 /**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 83;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 99999;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+
+  /* USER CODE END TIM5_Init 2 */
+
+}
+
+/**
   * @brief TIM8 Initialization Function
   * @param None
   * @retval None
@@ -483,7 +541,7 @@ static void MX_TIM8_Init(void)
 
   /* USER CODE END TIM8_Init 1 */
   htim8.Instance = TIM8;
-  htim8.Init.Prescaler = 63;
+  htim8.Init.Prescaler = 83;
   htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim8.Init.Period = 49;
   htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -662,11 +720,11 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_10
@@ -691,76 +749,92 @@ void Encoder();
 void PID_PWM();
 void kinematics_model();
 
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
-{
-    if (huart == &huart3)
-    {
-		Vx = 0.0;
-		Vy = 0.0;
-		W = 0.0;
-		HAL_UART_DeInit(&huart3);
-		MX_USART3_UART_Init();
-		errcallback();
-    }
-}
-
+double WF, WR, WL;
+int nnn=0;
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim->Instance == TIM3){
-		rVx++;
-		rVy++;
-		rW++;
+		inverse_kinematics_model();
+		Encoder();
+		PID_PWM();
+		kinematics_model();
+		//nnn++;
+	}
+	else if(htim->Instance == TIM5){
+		//rVx = 1;
+		//rVy = 1;
+		//rW = 1;
 		realspeed();
-		/*
-		speed.linear.x=rVx;
-		speed.linear.y=rVy;
-		speed.angular.z=rW;
-		pub.publish(speed);
-		*/
-		//inverse_kinematics_model();
-		//Encoder();
-		//PID_PWM();
-		//kinematics_model();
+//		nnn++;
 	}
 }
 
-void inverse_kinematics_model(){
-	double WF, WR, WL;
-	/*alpha
-	Vx = cos(A)*Vx - sin(A)*Vy;
-	Vy = sin(A)*Vx + cos(A)*Vy;
-	Am = A - rA;
-	Wm = Am*motor_span;
-	W += Wm;
-	A += W*motor_span;
-	*/
-	WF = Vx - LF*W;
-	WR = -cos(degree60)*Vx - sin(degree60)*Vy - LR*W;
-	WL = -sin(degree30)*Vx + cos(degree30)*Vy - LL*W;
+//void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+//{
+//    if (huart == &huart3)
+//    {
+//		Vx = 0.0;
+//		Vy = 0.0;
+//		W = 0.0;
+//		HAL_UART_DeInit(&huart3);
+//		MX_USART3_UART_Init();
+//		errcallback();
+//    }
+//}
 
-	MF = WF/ratio_motor2wheel;
-	MR = WR/ratio_motor2wheel;
-	ML = WL/ratio_motor2wheel;
+//void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+//{
+//    if (huart == &huart3)
+//    {
+//		Vx = 0.0;
+//		Vy = 0.0;
+//		W = 0.0;
+//		HAL_UART_DeInit(&huart3);
+//		MX_USART3_UART_Init();
+//		errcallback();
+//		nnn++;
+//    }
+//}
+
+void inverse_kinematics_model(){
+
+	WL = (-Vx + sqrt(3) * Vy + LL * W) / 3;
+	WR = (-Vx - sqrt(3) * Vy + LR * W) / 3;
+	WF = (2 * Vx + LF * W) / 3;
+
+	WF = WF * (-1);
+	WL = WL * (-1);
+	WR = WR * (-1);
+
+	MF = (WF / wheel_radius) / ratio_motor2wheel / (2 * pi) * cmnspeed;
+	MR = (WR / wheel_radius) / ratio_motor2wheel / (2 * pi) * cmnspeed;
+	ML = (WL / wheel_radius) / ratio_motor2wheel / (2 * pi) * cmnMF * cmnspeed;
 	}
 void Encoder() {
 	//front wheel motor
 	enc_MF = __HAL_TIM_GetCounter(TIM_ENC_MF);
-	rMF = (double) enc_MF / (4 * resolution_MF * reductionratio_MF) / motor_span/(2*pi);
+	rMF = (double) enc_MF / (4 * resolution_MF * reductionratio_MF) / motor_span;//(2*pi);//rev/s = 2Pi/s
 	__HAL_TIM_SetCounter(TIM_ENC_MF, 0);
 
 	//right wheel motor
 	enc_MR = __HAL_TIM_GetCounter(TIM_ENC_MR);
-	rMR = (double) enc_MR / (4 * resolution_MR * reductionratio_MR) / motor_span/(2*pi);
+	rMR = (double) enc_MR / (4 * resolution_MR * reductionratio_MR) / motor_span;//(2*pi);
 	__HAL_TIM_SetCounter(TIM_ENC_MR, 0);
 
 	//left wheel motor
 	enc_ML = __HAL_TIM_GetCounter(TIM_ENC_ML);
-	rML = (double) enc_ML / (4 * resolution_ML * reductionratio_ML) / motor_span/(2*pi);
+	rML = (double) enc_ML / (4 * resolution_ML * reductionratio_ML) / motor_span;//(2*pi);
 	__HAL_TIM_SetCounter(TIM_ENC_ML, 0);
 }
+int pulse_MF;
+int pulse_MR;
+int pulse_ML;
+float u_ML;
+double bound_ML;
+
 void PID_PWM(){
 
 	//PID_MF
-	double err_MF = MF - rMF;
+	err_MF = MF - rMF;
 	inte_MF += err_MF * motor_span;
 	double bound_MF = 1/ki_MF;
 	if (ki_MF * inte_MF > 1) inte_MF = bound_MF;
@@ -770,7 +844,6 @@ void PID_PWM(){
 	else if (u_MF < -1) u_MF = -1;
 
 	//PWM_MF
-	int pulse_MF;
 	if (u_MF > 0) {
 		pulse_MF = (int) (u_MF * (motorARR + 1));
 		HAL_GPIO_WritePin(INA_MF_PORT, INA_MF_PIN, GPIO_PIN_SET); // INA
@@ -783,7 +856,7 @@ void PID_PWM(){
 	__HAL_TIM_SET_COMPARE(TIM_PWM_MF, CH_PWM_MF, pulse_MF); // PWM
 
 	//PID_MR
-	double err_MR = MR - rMR;
+	err_MR = MR - rMR;
 	inte_MR += err_MR * motor_span;
 	double bound_MR = 1/ki_MR;
 	if (ki_MR * inte_MR > 1) inte_MR = bound_MR;
@@ -792,7 +865,6 @@ void PID_PWM(){
 	if (u_MR > 1) u_MR = 1;
 	else if (u_MR < -1) u_MR = -1;
 	//PWM_MR
-	int pulse_MR;
 	if (u_MR > 0) {
 		pulse_MR = (int) (u_MR * (motorARR + 1));
 		HAL_GPIO_WritePin(INA_MR_PORT, INA_MR_PIN, GPIO_PIN_SET); // INA
@@ -805,17 +877,18 @@ void PID_PWM(){
 	__HAL_TIM_SET_COMPARE(TIM_PWM_MR, CH_PWM_MR, pulse_MR); // PWM
 
 	//PID_ML
-	double err_ML = ML - rML;
+	err_ML = ML - rML;
 	inte_ML += err_ML * motor_span;
-	double bound_ML = 1/ki_ML;
+	bound_ML = 1/ki_ML;
 	if (ki_ML * inte_ML > 1) inte_ML = bound_ML;
 	else if (ki_ML * inte_ML < -1) inte_ML = -bound_ML;
-	float u_ML = kp_ML * err_ML + ki_ML * inte_ML;
+//	float u_ML = kp_ML * err_ML + ki_ML * inte_ML;
+	u_ML = kp_ML * err_ML + ki_ML * inte_ML;
 	if (u_ML > 1) u_ML = 1;
 	else if (u_ML < -1) u_ML = -1;
 	//PWM_ML
-	int pulse_ML;
 	if (u_ML > 0) {
+		//nnn++;
 		pulse_ML = (int) (u_ML * (motorARR + 1));
 		HAL_GPIO_WritePin(INA_ML_PORT, INA_ML_PIN, GPIO_PIN_SET); // INA
 		HAL_GPIO_WritePin(INB_ML_PORT, INB_ML_PIN, GPIO_PIN_RESET); // INB
@@ -823,8 +896,11 @@ void PID_PWM(){
 		pulse_ML = (int) (-u_ML * (motorARR + 1));
 		HAL_GPIO_WritePin(INA_ML_PORT, INA_ML_PIN, GPIO_PIN_RESET); // INA
 		HAL_GPIO_WritePin(INB_ML_PORT, INB_ML_PIN, GPIO_PIN_SET); // INB
+		nnn++;
 	}
 	__HAL_TIM_SET_COMPARE(TIM_PWM_ML, CH_PWM_ML, pulse_ML); // PWM
+
+	//nnn++;
 
 }
 void kinematics_model(){
