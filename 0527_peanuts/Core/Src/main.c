@@ -35,12 +35,12 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 //motor datasheet
-#define resolution_MF 512
-#define reductionratio_MF 16
-#define resolution_ML 500
+#define resolution_MF 506
+#define reductionratio_MF 13.2
+#define resolution_ML 518
 #define reductionratio_ML 13.2
-#define resolution_MR 500
-#define reductionratio_MR 13.2
+#define resolution_MR 512
+#define reductionratio_MR 20.8
 
 //motor control
 #define TIM_ENC_MF &htim1
@@ -77,9 +77,10 @@
 #define degree30 pi/6
 
 #define ratio_motor2wheel 0.5 //motor 1 revolution wheel 32/20 revolution -> 20/40
-#define LF 100
-#define LR 100
-#define LL 100
+#define LF 0.1
+#define LR 0.1
+#define LL 0.1
+#define L 0.1
 #define wheel_radius 0.03
 /* USER CODE END PD */
 
@@ -126,8 +127,21 @@ const float kp_MR = 0.63478, ki_MR = 42.3571, kd_MR = 0;
 const float kp_MF = 0.62054, ki_MF = 48.2085, kd_MF = 0;
 const float kp_ML = 0.68042, ki_ML = 54.7149, kd_ML = 0;
 
-double cmnMF = 0.83;
-double cmnspeed = 1.585;
+//double cmnMF = 1;//.015;
+//double cmnML = 1;//.015;
+//double cmnMR = 1.007;
+double cmnspeed = 1;
+
+double Vx_cmd=0;
+double Vy_cmd=0;
+double W_cmd=0;
+double ML_cmd=0;
+double MR_cmd=0;
+double MF_cmd=0;
+int run = 0;
+int straight_test_cnt = 0;
+
+//double inte_w = 0;
 
 /* USER CODE END PV */
 
@@ -202,6 +216,17 @@ int main(void)
     HAL_TIM_PWM_Start(TIM_PWM_ML, CH_PWM_ML);
     HAL_TIM_PWM_Start(TIM_PWM_MR, CH_PWM_MR);
   	setup();
+  	adjVx = 1.885714;
+  	adjVy = 0.9637056234718826;
+  	adjW = 3.922374063966527;
+  	cmnMF = 1;
+  	cmnML = 1;
+  	cmnMR = 1.003;
+  	//test rotate
+//  	run = 1;
+//  	straight_test_cnt = 20010;
+//  	W_cmd = 0.628318530717958647692;
+//  	inte_w = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -493,7 +518,7 @@ static void MX_TIM5_Init(void)
   htim5.Instance = TIM5;
   htim5.Init.Prescaler = 83;
   htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim5.Init.Period = 99999;
+  htim5.Init.Period = 9999;
   htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
@@ -749,8 +774,55 @@ double WF, WR, WL;
 int into_tim3=0;
 int into_tim5=0;
 int into_PID=0;
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim->Instance == TIM3){
+
+		if (straight_test_cnt > 20000 && run == 1) {
+			Vx = 0;
+			Vy = 0;
+			W = 0;
+			straight_test_cnt--;
+		} else if (straight_test_cnt > 0 && run == 1) {
+			Vx = Vx_cmd;
+			Vy = Vy_cmd;
+			W = W_cmd;
+			straight_test_cnt--;
+//			inte_w = inte_w + rW*motor_span;
+		} else if (straight_test_cnt == 0) {
+			Vx = 0;
+			Vy = 0;
+			W = 0;
+			run = 0;
+			straight_test_cnt = 10000;
+		}
+
+//		if (straight_test_cnt > 0 && run == 1) {
+//			Vx = Vx_cmd;
+//			Vy = Vy_cmd;
+//			W = W_cmd;
+//			straight_test_cnt--;
+//		} else if (straight_test_cnt == 0) {
+//			Vx = 0;
+//			Vy = 0;
+//			W = 0;
+//			run = 0;
+//			straight_test_cnt = 10000;
+//		}
+
+//		if (straight_test_cnt > 0 && run == 1) {
+//			MF = MF_cmd*cmnMF;
+//			ML = ML_cmd*cmnML;
+//			MR = MR_cmd*cmnMR;
+//			straight_test_cnt--;
+//		} else if (straight_test_cnt == 0) {
+//			ML = 0;
+//			MR = 0;
+//			MF = 0;
+//			run = 0;
+//			straight_test_cnt = 10000;
+//		}
+
 		inverse_kinematics_model();
 		Encoder();
 		PID_PWM();
@@ -766,21 +838,57 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	}
 }
 
+//double adjVx=2*0.942857, adjVy=1.005, adjW=3.90603808387;
+//void inverse_kinematics_model(){
+//
+////	WF = -0.536*2*Vx -0.046*W;
+////	WL = 0.268*2*Vx -0.926*Vy -0.027*W;
+////	WR = 0.268*2*Vx +0.926*Vy -0.027*W;
+//
+//	WF = -0.536*adjVx*Vx -0.027*adjW*W;
+//	WL = 0.268*adjVx*Vx -0.926*adjVy*Vy -0.027*adjW*W;
+//	WR = 0.268*adjVx*Vx +0.926*adjVy*Vy -0.027*adjW*W;
+//
+////	WF = (-2*sqrt(3)+4)*Vx + (-2*sqrt(3)*L+3*L)*W;
+////	WL = (sqrt(3)-2)*Vx + (sqrt(3)/3)*Vy + (sqrt(3)*L-2*L)*W;
+////	WR = (sqrt(3)-2)*Vx + (-sqrt(3)/3)*Vy + (sqrt(3)*L-2*L)*W;
+//
+////	WF = Vx - LF*W;
+////	WR = -cos(degree60)*Vx - sin(degree60)*Vy - LR*W;
+////	WL = -sin(degree30)*Vx + cos(degree30)*Vy - LL*W;
+//
+//	//treatise holonomic three wheels omni
+////	WL = (-Vx+sqrt(3)*Vy+LL*W)/3;
+////	WR = (-Vx-sqrt(3)*Vy+LR*W)/3;
+////	WF = (2*Vx+LF*W)/3;
+//	//W等�?��?�調?��? ?��L?
+//
+////	WF=WF*(-1);
+////	WL=WL*(-1);
+////	WR=WR*(-1);
+//
+////	MF = (WF/wheel_radius)/ratio_motor2wheel/(2*pi)*cmnspeed*cmnMF;
+////	MR = (WR/wheel_radius)/ratio_motor2wheel/(2*pi)*cmnMR*cmnspeed;
+////	ML = (WL/wheel_radius)/ratio_motor2wheel/(2*pi)*cmnML*cmnspeed;
+//
+////	MF = 0;
+////	MR = 0.5;
+////	ML = -0.5;
+//	}
+
 void inverse_kinematics_model(){
-	//treatise holonomic three wheels omni
-	WL = (-Vx+sqrt(3)*Vy+LL*W)/3;
-	WR = (-Vx-sqrt(3)*Vy+LR*W)/3;
-	WF = (2*Vx+LF*W)/3;
-	//W等比例調整? 用L?
 
-	WF=WF*(-1);
-	WL=WL*(-1);
-	WR=WR*(-1);
+	WR = -0.536*adjVx*Vx -0.027*adjW*W;
+	WF = 0.268*adjVx*Vx -0.926*adjVy*Vy -0.027*adjW*W;
+	WL = 0.268*adjVx*Vx +0.926*adjVy*Vy -0.027*adjW*W;
 
-	MF = (WF/wheel_radius)/ratio_motor2wheel/(2*pi)*cmnspeed;
-	MR = (WR/wheel_radius)/ratio_motor2wheel/(2*pi)*cmnspeed;
-	ML = (WL/wheel_radius)/ratio_motor2wheel/(2*pi)*cmnMF*cmnspeed;
+	MF = (WF/wheel_radius)/ratio_motor2wheel/(2*pi)*cmnspeed*cmnMF;
+	MR = (WR/wheel_radius)/ratio_motor2wheel/(2*pi)*cmnMR*cmnspeed;
+	ML = (WL/wheel_radius)/ratio_motor2wheel/(2*pi)*cmnML*cmnspeed;
+
 	}
+
+float inte_rMF = 0;
 void Encoder() {
 	//front wheel motor
 	enc_MF = __HAL_TIM_GetCounter(TIM_ENC_MF);
@@ -791,10 +899,11 @@ void Encoder() {
 	enc_MR = __HAL_TIM_GetCounter(TIM_ENC_MR);
 	rMR = (double) enc_MR / (4 * resolution_MR * reductionratio_MR) / motor_span;//(2*pi);
 	__HAL_TIM_SetCounter(TIM_ENC_MR, 0);
+	inte_rMF += rMF*motor_span;
 
 	//left wheel motor
 	enc_ML = __HAL_TIM_GetCounter(TIM_ENC_ML);
-	rML = (double) enc_ML / (4 * resolution_ML * reductionratio_ML) / motor_span;//(2*pi);
+	rML = (-1)*(double) enc_ML / (4 * resolution_ML * reductionratio_ML) / motor_span;//(2*pi);
 	__HAL_TIM_SetCounter(TIM_ENC_ML, 0);
 }
 int pulse_MF;
@@ -839,12 +948,12 @@ void PID_PWM(){
 	//int pulse_MR;
 	if (u_MR > 0) {
 		pulse_MR = (int) (u_MR * (motorARR + 1));
-		HAL_GPIO_WritePin(INA_MR_PORT, INA_MR_PIN, GPIO_PIN_SET); // INA
-		HAL_GPIO_WritePin(INB_MR_PORT, INB_MR_PIN, GPIO_PIN_RESET); // INB
-	} else {
-		pulse_MR = (int) (-u_MR * (motorARR + 1));
 		HAL_GPIO_WritePin(INA_MR_PORT, INA_MR_PIN, GPIO_PIN_RESET); // INA
 		HAL_GPIO_WritePin(INB_MR_PORT, INB_MR_PIN, GPIO_PIN_SET); // INB
+	} else {
+		pulse_MR = (int) (-u_MR * (motorARR + 1));
+		HAL_GPIO_WritePin(INA_MR_PORT, INA_MR_PIN, GPIO_PIN_SET); // INA
+		HAL_GPIO_WritePin(INB_MR_PORT, INB_MR_PIN, GPIO_PIN_RESET); // INB
 	}
 	__HAL_TIM_SET_COMPARE(TIM_PWM_MR, CH_PWM_MR, pulse_MR); // PWM
 
@@ -872,23 +981,55 @@ void PID_PWM(){
 	into_PID++;
 
 }
-void kinematics_model(){ //還沒加修正角度、輪半徑
-	double rWF = rMF*ratio_motor2wheel*wheel_radius,
-				 rWR = rMR*ratio_motor2wheel*wheel_radius,
-				 rWL = rML*ratio_motor2wheel*wheel_radius;
 
-	rVx = 1/(LF+LR+LL)*((LR+LL)*rWF - LF*rWR - LF*rWL);
-	rVy = 1/sqrt(3)/(LF+LR+LL)*((LR-LL)*rWF - (LF+2*LL)*rWR + (LF+2*LR)*rWL);
-	rW = -1/(LF+LR+LL)*(rWF + rWR + rWL);
-	rVx = rVx*(-1);
-	rVy = rVy*(-1);
-	rW = rW*(-1);
-	/*alpha
-	rVx = cos(A)*rVx - sin(A)*rVy;
-	rVy = sin(A)*rVx + cos(A)*rVy;
-	rA+=rW*motor_span;
-	*/
+void kinematics_model(){
+	double rWL = rMF*ratio_motor2wheel*wheel_radius*(2*pi),
+		   rWF = rMR*ratio_motor2wheel*wheel_radius*(2*pi),
+		   rWR = rML*ratio_motor2wheel*wheel_radius*(2*pi);
+
+	rVx = (-1.244*rWF + 0.622*rWL + 0.622*rWR)/adjVx;
+	rVy = (-0.54*rWL + 0.54*rWR)/adjVy;
+	rW = (-12.346*rWF -12.346*rWL -12.346*rWR)/adjW;
 }
+
+//void kinematics_model(){ //??��?��?�修�?角度?�輪??��??
+//	double rWF = rMF*ratio_motor2wheel*wheel_radius*(2*pi), //---------------0618(*-1)
+//		   rWR = rMR*ratio_motor2wheel*wheel_radius*(2*pi),
+//		   rWL = rML*ratio_motor2wheel*wheel_radius*(2*pi);
+//
+//	rVx = (-1.244*rWF + 0.622*rWL + 0.622*rWR)/adjVx;
+//	rVy = (-0.54*rWL + 0.54*rWR)/adjVy;
+//	rW = (-12.346*rWF -12.346*rWL -12.346*rWR)/adjW;
+//
+////	rVx = -rWF +sqrt(3)/2*rWL +sqrt(3)/2*rWR;
+////	rVy=-0.5*rWL+0.5*rWR;
+////	rW = -rWF/LF -rWL/LF -rWR/LR;
+////
+////	rVx = rVx/(2*adjVx);
+////	rVy = rVy/(0.926*adjVy);
+////	rW = rW/adjW;
+//
+////	rVx = rWF -sqrt(3)/2*rWL -sqrt(3)/2*rWR;
+////	rVy = sqrt(3)/2*rWL - sqrt(3)/2*rWR;
+////	rW = -rWF/LF -rWL/LF -rWR/LR;
+//
+////	rVx = cos(210)*rWL + cos(330)*rWR + cos(90)*rWF;
+////	rVy = sin(210)*rWL + sin(330)*rWR + sin(90)*rWF;
+////	rW = rWL+rWR+rWF;
+//
+////	rVx = 1/(LF+LR+LL)*((LR+LL)*rWF - LF*rWR - LF*rWL);
+////	rVy = 1/sqrt(3)/(LF+LR+LL)*((LR-LL)*rWF - (LF+2*LL)*rWR + (LF+2*LR)*rWL);
+////	rW = -1/(LF+LR+LL)*(rWF + rWR + rWL);
+////	rVx = rVx*(-1);
+////	rVy = rVy*(-1);
+////	rW = rW*(-1);
+//
+//	/*alpha
+//	rVx = cos(A)*rVx - sin(A)*rVy;
+//	rVy = sin(A)*rVx + cos(A)*rVy;
+//	rA+=rW*motor_span;
+//	*/
+//}
 /* USER CODE END 4 */
 
 /**

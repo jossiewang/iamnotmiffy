@@ -9,7 +9,8 @@
 #include "ros.h"
 #include "stm32h7xx_hal.h"
 #include "geometry_msgs/Twist.h"
-double Vx, Vy, W;
+#include "std_msgs/Float64.h"
+double Vx, Vy, W, adjVx, adjVy, adjW,cmnMF, cmnML, cmnMR;
 float rVx, rVy, rW;
 void vel_callback(const geometry_msgs::Twist &msg)
 {
@@ -17,8 +18,20 @@ void vel_callback(const geometry_msgs::Twist &msg)
 	Vy = msg.linear.y;
 	W=msg.angular.z;
 }
+void const_callback(const geometry_msgs::Twist &msg)
+{
+	adjVx = msg.linear.x;
+	adjVy = msg.linear.y;
+	adjW = msg.linear.z;
+	cmnMF = msg.angular.x;
+	cmnMR = msg.angular.y;
+	cmnML = msg.angular.z;
+}
+
 ros::NodeHandle nh;
 ros::Subscriber<geometry_msgs::Twist> sub("cmdvel_toSTM", vel_callback);
+ros::Subscriber<geometry_msgs::Twist> sub1("cmdconst", const_callback);
+
 geometry_msgs::Twist speed;
 ros::Publisher pub("speed_fromSTM",&speed);
 
@@ -34,6 +47,7 @@ void setup(void)
 {
     nh.initNode();
     nh.subscribe(sub);
+    nh.subscribe(sub1);
     nh.advertise(pub);
 }
 void loop(void)

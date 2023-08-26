@@ -17,7 +17,7 @@ void setup(void);
 void loop(void);
 void errcallback(void);
 void realspeed(void);
-extern double Vx, Vy, W;
+extern double Vx, Vy, W, adjVx, adjVy, adjW, cmnMF, cmnML, cmnMR;
 extern float rVx, rVy, rW;
 
 #ifdef __cplusplus
